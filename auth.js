@@ -61,6 +61,13 @@ window.ensureLauncherModalExists = function() {
                         <button class="btn-win" style="font-size: 10px; padding: 2px 8px; background: #ffe6e6; color: #800000;" onclick="logoutSwdAccount()">🚪 Wyloguj</button>
                     </div>
 
+                    <div class="form-box" style="padding: 8px; background: #fff8c4; border-color: #b38600;">
+                        <div class="form-title" style="font-size: 12px; margin-bottom: 6px; color: #800000;">Typ Stanowiska (Interfejs):</div>
+                        <div style="display: flex; gap: 15px;">
+                            <label style="cursor: pointer; font-weight: bold; color: #0a246a; font-size: 11px;"><input type="radio" name="auth-station-type" value="SKKP" checked> 🚒 SKKP (Standard)</label>
+                            <label style="cursor: pointer; font-weight: bold; color: #b30000; font-size: 11px;"><input type="radio" name="auth-station-type" value="CPR"> 📞 CPR 112 (Operator)</label>
+                        </div>
+                    </div>
                     <div class="form-box" style="padding: 8px;">
                         <div class="form-title" style="font-size: 12px; margin-bottom: 6px;">1. Funkcja w Trybie Współpracy (Co-op)</div>
                         <div class="form-group">
@@ -110,6 +117,8 @@ async function restoreSavedDatabaseSession() {
 
         if (!error && data) {
             unlockSetupStepForAccount(data);
+            const savedStation = localStorage.getItem('SWDST_STATION_TYPE');
+            if (savedStation) window.currentSelectedStation = savedStation;
             const modal = document.getElementById('modal-launcher');
             if (modal) modal.style.display = 'none';
             setTimeout(applyUserPermissionsToUI, 300);
@@ -234,6 +243,11 @@ window.confirmLauncherLogin = function() {
     currentUserRank = currentLoggedAccount.rank;
     currentUserName = currentLoggedAccount.name;
     currentUserRole = selRole ? selRole.value : (currentLoggedAccount.default_role || "UNIWERSALNY");
+    
+    const stationRadio = document.querySelector('input[name="auth-station-type"]:checked');
+    window.currentSelectedStation = stationRadio ? stationRadio.value : 'SKKP';
+    localStorage.setItem('SWDST_STATION_TYPE', window.currentSelectedStation);
+
     const newCountyId = chosenCountyRadio ? chosenCountyRadio.value : (
         allowedCounties.includes("ALL") ? "wejherowski" : allowedCounties[0]
     );
