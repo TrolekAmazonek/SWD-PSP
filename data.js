@@ -14,26 +14,25 @@ if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
 
 const audioSelekt = new Audio('selekt.wav');
 const audioCpr = new Audio('nowe zdarzenie odbierz.mp3');
+const audioLublinCpr = new Audio('formatkaskkkmlublin (1).mp3'); // Dedykowany dźwięk dla Lublina
 const audioMotorola = new Audio('motorola.ogg');
 
 function playSound(type) {
-    if (type === 'cpr') { audioCpr.currentTime = 0; audioCpr.play().catch(() => {}); }
-    else if (type === 'motorola') { audioMotorola.currentTime = 0; audioMotorola.play().catch(() => {}); }
-}
-
-function playOspAlarmRepeated(ospCount) {
-    if (ospCount <= 0) return;
-    let played = 0;
-    function playNext() {
-        if (played < ospCount) {
-            audioSelekt.currentTime = 0;
-            audioSelekt.play().then(() => {
-                played++;
-                if (played < ospCount) setTimeout(playNext, 3000);
-            }).catch(() => {});
+    if (type === 'cpr') {
+        if (typeof currentCountyId !== 'undefined' && currentCountyId === 'lubelski') {
+            audioLublinCpr.currentTime = 0;
+            audioLublinCpr.play().catch(() => {
+                audioCpr.currentTime = 0; audioCpr.play().catch(() => {});
+            });
+        } else {
+            audioCpr.currentTime = 0; 
+            audioCpr.play().catch(() => {});
         }
     }
-    playNext();
+    else if (type === 'motorola') { 
+        audioMotorola.currentTime = 0; 
+        audioMotorola.play().catch(() => {}); 
+    }
 }
 
 let currentWeatherData = {
