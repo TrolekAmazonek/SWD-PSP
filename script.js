@@ -2029,6 +2029,8 @@ function confirmDispatch() {
 }
 
 function saveEvent() {
+    try {
+
     const cityInput = document.getElementById('inp-ev-city');
     const city = cityInput ? cityInput.value.trim() : "";
     if (!city) { alert('Proszę podać miejscowość!'); return; }
@@ -2126,6 +2128,12 @@ function saveEvent() {
 
     if (targetEventObj) geocodeEventAddress(targetEventObj);
     renderUnits(); renderEvents(); saveSimulationState(true); closeModal('modal-event');
+}
+
+    } catch(err) {
+        console.error("Błąd w saveEvent:", err);
+        alert("Błąd zapisu karty zdarzenia: " + err.message);
+    }
 }
 
 function triggerEventFinishAndReturn(ev) {
