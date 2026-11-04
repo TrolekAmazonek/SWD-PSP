@@ -59,7 +59,6 @@ function initSupabaseAndCoop() {
         }
     });
 
-    // 1. Nasłuchiwanie zmian w tabeli bazy danych (Postgres Changes)
     coopChannel.on('postgres_changes', { event: '*', schema: 'public', table: 'swd_state' }, payload => {
         if (payload.new && payload.new.id === currentCountyId && payload.new.data) {
             if (payload.new.data.senderId && payload.new.data.senderId === myClientId) return;
@@ -67,7 +66,6 @@ function initSupabaseAndCoop() {
         }
     });
 
-    // 2. Natychmiastowa synchronizacja przez WebSocket Broadcast
     coopChannel.on('broadcast', { event: 'swd_state_sync' }, ({ payload }) => {
         if (!payload || payload.senderId === myClientId) return;
         if (payload.countyId === currentCountyId && payload.stateObj) {
@@ -75,7 +73,6 @@ function initSupabaseAndCoop() {
         }
     });
 
-    // 2.1. Synchronizacja tempa czasu (Speed) pomiędzy klientami Co-op
     coopChannel.on('broadcast', { event: 'swd_speed_sync' }, ({ payload }) => {
         if (!payload || payload.senderId === myClientId) return;
         if (payload.speed && payload.speed !== simSpeed) {
@@ -83,7 +80,6 @@ function initSupabaseAndCoop() {
         }
     });
 
-    // 3. Synchronizacja formatek 112 (CPR) w trybie współpracy
     coopChannel.on('broadcast', { event: 'swd_cpr_sync' }, ({ payload }) => {
         if (!payload || payload.senderId === myClientId || payload.countyId !== currentCountyId) return;
         if (payload.action === 'NEW_CPR' && payload.cprData) {
@@ -106,13 +102,11 @@ function initSupabaseAndCoop() {
         }
     });
 
-    // 4. Wiadomości Interkomu / Telefonu Dyżurnego oraz Brzęczyk
     coopChannel.on('broadcast', { event: 'swd_intercom_msg' }, ({ payload }) => {
         if (!payload) return;
         receiveCoopIntercomMessage(payload);
     });
 
-    // 5. Zapotrzebowanie na Wsparcie Międzypowiatowe
     coopChannel.on('broadcast', { event: 'swd_mutual_aid_req' }, ({ payload }) => {
         if (!payload || payload.senderId === myClientId) return;
         if (payload.targetCountyId === currentCountyId || payload.targetCountyId === 'ALL') {
@@ -120,7 +114,6 @@ function initSupabaseAndCoop() {
         }
     });
 
-    // 6. Potwierdzenie przekazania zastępu w ramach Wsparcia Międzypowiatowego
     coopChannel.on('broadcast', { event: 'swd_mutual_aid_grant' }, ({ payload }) => {
         if (!payload || payload.senderId === myClientId) return;
         if (payload.requesterCountyId === currentCountyId) {
@@ -128,7 +121,6 @@ function initSupabaseAndCoop() {
         }
     });
 
-    // 7. Obecność dyspozytorów Online (Presence)
     coopChannel.on('presence', { event: 'sync' }, () => {
         const state = coopChannel.presenceState();
         onlinePeers = {};
@@ -1693,6 +1685,8 @@ function renderEvents() {
         `;
         tbody.appendChild(tr);
     });
+    updateMapMarkers();
+}
 
 function renderSelectedEventDetails() {
     if (selectedEvIdForRadio === null) return;
@@ -2041,7 +2035,6 @@ function saveEvent() {
     } else {
         const ev = events.find(e => e.id === activeEditingId);
         if (ev) {
-            // Zabezpieczenie z separatorem ------ dla wpisów dokonywanych przez gracza w edycji
             const oldDesc = ev.desc || "";
             if (descVal && !oldDesc.endsWith(descVal) && oldDesc !== descVal) {
                 const timeNow = new Date().toLocaleTimeString();
@@ -2379,4 +2372,4 @@ window.addEventListener('DOMContentLoaded', () => {
 
 startSimulationLoop();
 scheduleNextAutoCPR();
-renderUnits();
+renderUnits()
