@@ -1,3 +1,28 @@
+
+function playCountySpecificAlertSound() {
+    if (typeof currentCountyId !== 'undefined' && currentCountyId === 'lubelski') {
+        try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(659.25, ctx.currentTime); // E5
+            osc.frequency.setValueAtTime(987.77, ctx.currentTime + 0.12); // B5
+            osc.frequency.setValueAtTime(1318.51, ctx.currentTime + 0.24); // E6
+            gain.gain.setValueAtTime(0.2, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.5);
+        } catch(e) {
+            if (typeof audioCpr !== 'undefined') { audioCpr.currentTime = 0; audioCpr.play().catch(() => {}); }
+        }
+    } else {
+        if (typeof audioCpr !== 'undefined') { audioCpr.currentTime = 0; audioCpr.play().catch(() => {}); }
+    }
+}
+
 // =========================================================================
 // PLIK 4: script.js - PEŁNY RDZEŃ SWD + CO-OP + SUPABASE + HISTORIA EDYCJI
 // =========================================================================
@@ -91,7 +116,7 @@ function initSupabaseAndCoop() {
             safeSetElementText('cpr-caller', currentCPRData.caller);
             safeSetElementText('cpr-desc', currentCPRData.desc);
             if (!(currentUserRole === 'KIERUJĄCY' && peerIsPrzyjmujacy)) {
-                audioCpr.currentTime = 0; audioCpr.play().catch(() => {});
+                playCountySpecificAlertSound();
                 const cprModal = document.getElementById('cpr-modal');
                 if (cprModal) cprModal.style.display = 'flex';
             }
@@ -749,7 +774,7 @@ function transmitIntercomMessage(text, isBuzzer = false) {
 function receiveCoopIntercomMessage(payload) {
     ensureCoopIntercomWindow();
     if (payload.isBuzzer) {
-        audioCpr.currentTime = 0; audioCpr.play().catch(() => {});
+        playCountySpecificAlertSound();
         openCoopIntercom();
     } else {
         audioMotorola.currentTime = 0; audioMotorola.play().catch(() => {});
@@ -912,7 +937,7 @@ function sendMutualAidRequestToPeer() {
 }
 
 function showIncomingMutualAidRequest(payload) {
-    audioCpr.currentTime = 0; audioCpr.play().catch(() => {});
+    playCountySpecificAlertSound();
     let modal = document.getElementById('modal-incoming-aid');
     if (!modal) {
         modal = document.createElement('div');
@@ -1437,7 +1462,7 @@ function openReportsModal() {
 }
 
 async function simulateIncomingCPR() {
-    audioCpr.currentTime = 0; audioCpr.play().catch(() => {});
+    playCountySpecificAlertSound();
     shiftStats.cprTotalGenerated++;
     saveSimulationState(true);
 
