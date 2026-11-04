@@ -1,11 +1,13 @@
 // =========================================================================
-// PLIK: auth.js - LOGOWANIE Z BAZY SUPABASE, UPRAWNIENIA ORAZ LOGIKA RADIOWA KDR
+// PLIK: auth.js - PEŁNY MODUŁ AUTORYZACJI, UPRAWNIEŃ SUPABASE ORAZ LOGIKI RADIOWEJ KDR
 // =========================================================================
 
 let currentLoggedAccount = null;
 const _originalApplyCountyProfile = window.applyCountyProfile;
 
-// 1. FILTROWANIE JEDNOSTEK WG UPRAWNIEŃ POBRANYCH Z BAZY
+// -------------------------------------------------------------------------
+// 1. FILTROWANIE JEDNOSTEK WG UPRAWNIEŃ POBRANYCH Z BAZY SUPABASE
+// -------------------------------------------------------------------------
 window.applyCountyProfile = function(countyId) {
     if (typeof _originalApplyCountyProfile === 'function') {
         _originalApplyCountyProfile(countyId);
@@ -17,7 +19,9 @@ window.applyCountyProfile = function(countyId) {
     }
 };
 
-// 2. OKNO LOGOWANIA Z BAZY SUPABASE
+// -------------------------------------------------------------------------
+// 2. OKNO LOGOWANIA Z BAZY SUPABASE ORAZ WYBÓR STANOWISKA (SKKP / CPR 112)
+// -------------------------------------------------------------------------
 window.ensureLauncherModalExists = function() {
     let modal = document.getElementById('modal-launcher');
     if (modal) modal.remove();
@@ -30,9 +34,9 @@ window.ensureLauncherModalExists = function() {
     const creds = getSupabaseCredentials();
 
     modal.innerHTML = `
-        <div class="modal-window" style="width: 540px; background: #ece9d8; border: 2px solid #0a246a; box-shadow: 0 6px 25px rgba(0,0,0,0.6);">
+        <div class="modal-window" style="width: 560px; background: #ece9d8; border: 2px solid #0a246a; box-shadow: 0 6px 25px rgba(0,0,0,0.6);">
             <div class="modal-header" style="background: linear-gradient(90deg, #0a246a, #1d4f91); color: #fff; padding: 6px 10px; font-size: 13px;">
-                <span>🔐 ${APP_VERSION} — Autoryzacja i Uprawnienia w Bazie</span>
+                <span>🔐 ${APP_VERSION} — Autoryzacja i Uprawnienia w Bazie (SKKP / CPR 112)</span>
             </div>
             <div class="modal-body" style="padding: 12px; display: flex; flex-direction: column; gap: 8px;">
                 
@@ -68,6 +72,7 @@ window.ensureLauncherModalExists = function() {
                             <label style="cursor: pointer; font-weight: bold; color: #b30000; font-size: 11px;"><input type="radio" name="auth-station-type" value="CPR"> 📞 CPR 112 (Operator)</label>
                         </div>
                     </div>
+
                     <div class="form-box" style="padding: 8px;">
                         <div class="form-title" style="font-size: 12px; margin-bottom: 6px;">1. Funkcja w Trybie Współpracy (Co-op)</div>
                         <div class="form-group">
@@ -272,35 +277,31 @@ window.confirmLauncherLogin = function() {
     setTimeout(applyUserPermissionsToUI, 300);
 };
 
+// -------------------------------------------------------------------------
 // 3. EGZEKWOWANIE UPRAWNIEŃ Z BAZY DANYCH DLA PRZYCISKÓW INTERFEJSU
+// -------------------------------------------------------------------------
 window.applyUserPermissionsToUI = function() {
     if (!currentLoggedAccount) return;
     const perms = currentLoggedAccount.permissions || { simulate_cpr: true, change_speed: true, change_weather: true, reset_shift: true };
 
-    // 1. Przycisk: Symuluj nowe zgłoszenie z CPR (112)
     const btnSimCpr = document.querySelector('button[onclick*="simulateIncomingCPR"]');
     if (btnSimCpr) {
         btnSimCpr.style.display = perms.simulate_cpr ? 'inline-block' : 'none';
     }
 
-    // 2. Przyciski: Zmiana tempa czasu (1x, 2x, 5x)
     ['btn-speed-1x', 'btn-speed-2x', 'btn-speed-5x'].forEach(id => {
         const btnSpeed = document.getElementById(id);
         if (btnSpeed) {
             btnSpeed.disabled = !perms.change_speed;
             btnSpeed.style.opacity = !perms.change_speed ? '0.4' : '1';
-            btnSpeed.title = !perms.change_speed ? 'Brak uprawnień w bazie do zmiany tempa czasu' : '';
         }
     });
 
-    // 3. Przycisk: Zmiana pogody
     const weatherBadge = document.getElementById('weather-status-badge');
     if (weatherBadge) {
         weatherBadge.style.pointerEvents = perms.change_weather ? 'auto' : 'none';
-        weatherBadge.title = perms.change_weather ? 'Kliknij, aby zmienić pogodę' : 'Brak uprawnień w bazie do zmiany pogody';
     }
 
-    // 4. Przycisk: Reset służby
     const btnReset = document.querySelector('button[onclick*="resetShiftState"]');
     if (btnReset) {
         btnReset.style.display = perms.reset_shift ? 'inline-block' : 'none';
@@ -311,10 +312,9 @@ window.addEventListener('DOMContentLoaded', () => {
     setTimeout(applyUserPermissionsToUI, 600);
 });
 
-// =========================================================================
-// 4. POPRAWIONA LOGIKA RADIOWA KDR: OWADY, PODZIAŁ P/MZ ORAZ WYMIARY OBIEKTÓW
-// =========================================================================
-
+// -------------------------------------------------------------------------
+// 4. ROZBUDOWANA LOGIKA RADIOWA KDR ORAZ WYMIARY OBIEKTÓW (WSPARCIE DLA SKKP)
+// -------------------------------------------------------------------------
 function getRealisticBuildingDimensions(ev) {
     const text = `${ev.desc || ''} ${ev.subtype || ''}`.toLowerCase();
 
@@ -381,7 +381,6 @@ window.evaluateSiSRequirementForEvent = function(ev, kdrCallsign) {
     const isInsects = desc.includes('szersze') || desc.includes('os ') || desc.includes('osy') || desc.includes('pszcz') || desc.includes('owad') || desc.includes('gniazd') || desc.includes('rój');
     const hasAerial = hasLadderOrLiftDispatched(ev);
 
-    // A) OWADY (Szerszenie / Osy / Pszczoły)
     if (isInsects) {
         const isHighLocation = desc.includes('dach') || desc.includes('podbitk') || desc.includes('strych') || desc.includes('poddasz') || desc.includes('wysoko') || desc.includes('piętr') || desc.includes('drzew');
         if (isHighLocation && !hasAerial) {
@@ -395,7 +394,6 @@ window.evaluateSiSRequirementForEvent = function(ev, kdrCallsign) {
         return `${currentCountyCallsign}, tu ${kdrCallsign}. Siły i środki na miejscu są w pełni wystarczające. Zabezpieczyliśmy teren, strażacy w ubraniach specjalnych przystępują do usunięcia gniazda owadów. Bez odbioru.`;
     }
 
-    // B) POZOSTAŁE MIEJSCOWE ZAGROŻENIA (MZ / AF) - bez wzmianek o pożarze
     if (ev.type === 'MZ' || ev.type === 'AF') {
         const isSeriousAccident = desc.includes('wypadek') || desc.includes('zakleszcz') || desc.includes('zderzeni') || desc.includes('dachow') || desc.includes('potrąc');
         if (isSeriousAccident && ev.vehicles.length < 2) {
@@ -404,7 +402,6 @@ window.evaluateSiSRequirementForEvent = function(ev, kdrCallsign) {
         return `${currentCountyCallsign}, tu ${kdrCallsign}. Siły i środki na miejscu są wystarczające, prowadzimy działania własnymi siłami. Bez odbioru.`;
     }
 
-    // C) POŻARY (Typ 'P')
     if (ev.type === 'P') {
         const isBuildingFire = desc.includes('budynk') || desc.includes('mieszkan') || desc.includes('dom') || desc.includes('hal') || desc.includes('poddasz') || desc.includes('dach');
         const hasPspUnit = ev.vehicles.some(v => (v.unitName || '').includes('JRG'));
