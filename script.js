@@ -1628,61 +1628,118 @@ function renderEvents() {
     if(!tbody) return;
     tbody.innerHTML = '';
 
+    const isCprStation = (typeof currentSelectedStation !== 'undefined' && currentSelectedStation === 'CPR');
     let tableEl = document.querySelector('.events-table-container table, table.sis-table');
+    
     if (tableEl) {
         let thead = tableEl.querySelector('thead');
         if (thead) {
-            thead.innerHTML = `
-                <tr style="background:#d4d0c8; font-size:11px; font-weight:bold; border-bottom:2px solid #808080; text-align:left;">
-                    <th style="padding:4px; border-right:1px solid #999;">ID</th>
-                    <th style="padding:4px; border-right:1px solid #999;">Data i czas</th>
-                    <th style="padding:4px; border-right:1px solid #999;">Nr telefonu</th>
-                    <th style="padding:4px; border-right:1px solid #999;">Stan połączenia</th>
-                    <th style="padding:4px; border-right:1px solid #999;">Adres</th>
-                    <th style="padding:4px; border-right:1px solid #999;">Powiat</th>
-                    <th style="padding:4px; border-right:1px solid #999;">Gmina</th>
-                    <th style="padding:4px; border-right:1px solid #999;">Kategoria</th>
-                    <th style="padding:4px; border-right:1px solid #999; text-align:center;">Priorytet</th>
-                    <th style="padding:4px; border-right:1px solid #999; text-align:center;">PRM</th>
-                    <th style="padding:4px; border-right:1px solid #999; text-align:center;">PSP</th>
-                    <th style="padding:4px; border-right:1px solid #999; text-align:center;">Policja</th>
-                    <th style="padding:4px;">Status CPR</th>
-                </tr>
-            `;
+            if (isCprStation) {
+                thead.innerHTML = `
+                    <tr style="background:#d4d0c8; font-size:11px; font-weight:bold; border-bottom:2px solid #808080; text-align:left;">
+                        <th style="padding:4px; border-right:1px solid #999;">ID</th>
+                        <th style="padding:4px; border-right:1px solid #999;">Data i czas</th>
+                        <th style="padding:4px; border-right:1px solid #999;">Nr telefonu</th>
+                        <th style="padding:4px; border-right:1px solid #999;">Stan połączenia</th>
+                        <th style="padding:4px; border-right:1px solid #999;">Adres</th>
+                        <th style="padding:4px; border-right:1px solid #999;">Powiat</th>
+                        <th style="padding:4px; border-right:1px solid #999;">Gmina</th>
+                        <th style="padding:4px; border-right:1px solid #999;">Kategoria</th>
+                        <th style="padding:4px; border-right:1px solid #999; text-align:center;">Priorytet</th>
+                        <th style="padding:4px; border-right:1px solid #999; text-align:center;">PRM</th>
+                        <th style="padding:4px; border-right:1px solid #999; text-align:center;">PSP</th>
+                        <th style="padding:4px; border-right:1px solid #999; text-align:center;">Policja</th>
+                        <th style="padding:4px;">Status CPR</th>
+                    </tr>
+                `;
+            } else {
+                thead.innerHTML = `
+                    <tr>
+                        <th>ID zdarzenia</th>
+                        <th>Data/Godzina</th>
+                        <th>KP/KM</th>
+                        <th>JRG</th>
+                        <th>Miejsce</th>
+                        <th>Zastępy</th>
+                        <th>Rodzaj</th>
+                        <th>Opis</th>
+                        <th>Czas / Status</th>
+                        <th>Nr meldunku</th>
+                    </tr>
+                `;
+            }
         }
     }
 
     events.forEach(ev => {
         const tr = document.createElement('tr');
-        tr.style.background = ev.status === 'ACTIVE' ? '#fcf8e3' : '#e6e6e6';
-        tr.style.borderBottom = '1px solid #d6d3c2';
-
+        tr.className = (ev.status === 'ACTIVE' ? 'active-ev' : 'finished-ev') + (selectedEvIdForRadio === ev.id ? ' selected-ev' : '');
         tr.ondblclick = () => openEditEventModal(ev.id);
         tr.onclick = () => selectEvent(ev.id);
 
-        let timeDisplay = ev.status === 'FINISHED' ? "Zakończono" : `Aktywne (${formatMMSS(ev.remainingSeconds)})`;
-        const fullPlace = ev.street ? `${ev.city}, ${ev.street}` : ev.city;
-        const profile = COUNTY_PROFILES[currentCountyId] || RAW_PROFILES[0];
-        
-        const prmStatus = ev.services?.prm ? '<span style="color:#b30000; font-weight:bold;">Zadysponowano</span>' : '<span style="color:#777;">-</span>';
-        const pspNames = ev.vehicles.length > 0 ? ev.vehicles.map(v => v.id).join(', ') : '<span style="color:#777;">-</span>';
-        const polStatus = ev.services?.police ? '<span style="color:#004080; font-weight:bold;">Zadysponowano</span>' : '<span style="color:#777;">-</span>';
+        if (isCprStation) {
+            tr.style.background = ev.status === 'ACTIVE' ? '#fcf8e3' : '#e6e6e6';
+            tr.style.borderBottom = '1px solid #d6d3c2';
 
-        tr.innerHTML = `
-            <td style="padding:4px; border-right:1px solid #ddd; font-weight:bold; color:#0a246a;">${ev.id}/CPR/2026</td>
-            <td style="padding:4px; border-right:1px solid #ddd;">${ev.time}</td>
-            <td style="padding:4px; border-right:1px solid #ddd; font-family:monospace;">501-234-567</td>
-            <td style="padding:4px; border-right:1px solid #ddd; color:#155724;">Aktywne (112)</td>
-            <td style="padding:4px; border-right:1px solid #ddd;"><b>${fullPlace}</b></td>
-            <td style="padding:4px; border-right:1px solid #ddd; font-size:11px;">${profile.countyName}</td>
-            <td style="padding:4px; border-right:1px solid #ddd; font-size:11px;">${ev.city}</td>
-            <td style="padding:4px; border-right:1px solid #ddd;"><b>${ev.type}</b> — ${ev.subtype}</td>
-            <td style="padding:4px; border-right:1px solid #ddd; text-align:center; font-weight:bold;">${ev.type === 'P' ? '1' : '2'}</td>
-            <td style="padding:4px; border-right:1px solid #ddd; text-align:center; font-size:11px;">${prmStatus}</td>
-            <td style="padding:4px; border-right:1px solid #ddd; font-size:11px;">${pspNames}</td>
-            <td style="padding:4px; border-right:1px solid #ddd; text-align:center; font-size:11px;">${polStatus}</td>
-            <td style="padding:4px; font-size:11px;">${timeDisplay}</td>
-        `;
+            let timeDisplay = ev.status === 'FINISHED' ? "Zakończono" : `Aktywne (${formatMMSS(ev.remainingSeconds)})`;
+            const fullPlace = ev.street ? `${ev.city}, ${ev.street}` : ev.city;
+            const profile = COUNTY_PROFILES[currentCountyId] || RAW_PROFILES[0];
+            
+            const prmStatus = ev.services?.prm ? '<span style="color:#b30000; font-weight:bold;">Zadysponowano</span>' : '<span style="color:#777;">-</span>';
+            const pspNames = ev.vehicles.length > 0 ? ev.vehicles.map(v => v.id).join(', ') : '<span style="color:#777;">-</span>';
+            const polStatus = ev.services?.police ? '<span style="color:#004080; font-weight:bold;">Zadysponowano</span>' : '<span style="color:#777;">-</span>';
+
+            tr.innerHTML = `
+                <td style="padding:4px; border-right:1px solid #ddd; font-weight:bold; color:#0a246a;">${ev.id}/CPR/2026</td>
+                <td style="padding:4px; border-right:1px solid #ddd;">${ev.time}</td>
+                <td style="padding:4px; border-right:1px solid #ddd; font-family:monospace;">501-234-567</td>
+                <td style="padding:4px; border-right:1px solid #ddd; color:#155724;">Aktywne (112)</td>
+                <td style="padding:4px; border-right:1px solid #ddd;"><b>${fullPlace}</b></td>
+                <td style="padding:4px; border-right:1px solid #ddd; font-size:11px;">${profile.countyName}</td>
+                <td style="padding:4px; border-right:1px solid #ddd; font-size:11px;">${ev.city}</td>
+                <td style="padding:4px; border-right:1px solid #ddd;"><b>${ev.type}</b> — ${ev.subtype}</td>
+                <td style="padding:4px; border-right:1px solid #ddd; text-align:center; font-weight:bold;">${ev.type === 'P' ? '1' : '2'}</td>
+                <td style="padding:4px; border-right:1px solid #ddd; text-align:center; font-size:11px;">${prmStatus}</td>
+                <td style="padding:4px; border-right:1px solid #ddd; font-size:11px;">${pspNames}</td>
+                <td style="padding:4px; border-right:1px solid #ddd; text-align:center; font-size:11px;">${polStatus}</td>
+                <td style="padding:4px; font-size:11px;">${timeDisplay}</td>
+            `;
+        } else {
+            if (ev.type === 'PZR' && selectedEvIdForRadio !== ev.id) tr.style.color = '#ffff00';
+
+            let timeDisplay = "";
+            if (ev.status === 'FINISHED') {
+                const anyReturning = ev.vehicles.some(v => v.phase === 'RETURN' && v.returnTime > 0);
+                timeDisplay = anyReturning ? "Powrót SiS..." : "0:00 min (Zakończono)";
+            } else if (ev.type === 'PZR') {
+                timeDisplay = !ev.firstArrived ? "Dojazd na PZR..." : "Zabezpieczenie rejonu (Aktywne)";
+            } else if (!ev.firstArrived) {
+                timeDisplay = `W drodze na miejsce... (Czas akcji: ${formatMMSS(ev.remainingSeconds)})`;
+            } else {
+                timeDisplay = `Działania: ${formatMMSS(ev.remainingSeconds)}`;
+            }
+
+            const fullPlace = ev.street ? `${ev.city}, ${ev.street}` : ev.city;
+            const rowColorStyle = (ev.status === 'ACTIVE' && ev.type === 'PZR' && selectedEvIdForRadio !== ev.id) ? 'style="color:#ffd700;"' : '';
+
+            const srvTags = [];
+            if (ev.services?.prm) srvTags.push('PRM');
+            if (ev.services?.police) srvTags.push('Policja');
+            const srvBadge = srvTags.length > 0 ? ` [${srvTags.join(', ')}]` : '';
+
+            tr.innerHTML = `
+                <td ${rowColorStyle}>${ev.id}/???/2026</td>
+                <td ${rowColorStyle}>${ev.time}</td>
+                <td ${rowColorStyle}>${ev.jrg}</td>
+                <td ${rowColorStyle}>${ev.jrg}</td>
+                <td ${rowColorStyle} title="Kliknij pinezkę, aby przybliżyć adres na mapie">${fullPlace} <span style="cursor:pointer;" onclick="event.stopPropagation(); focusEventOnMap(${ev.id});" title="Pokaż dokładny adres na mapie">📍</span></td>
+                <td ${rowColorStyle}>${ev.vehicles.length}</td>
+                <td ${rowColorStyle}>${ev.type}</td>
+                <td ${rowColorStyle}>${ev.desc || (ev.type === 'PZR' ? 'Przekazanie na zabezpieczenie rejonu' : '')}${srvBadge}</td>
+                <td ${rowColorStyle}><b>${timeDisplay}</b></td>
+                <td ${rowColorStyle}>???-0000${ev.id}</td>
+            `;
+        }
         tbody.appendChild(tr);
     });
     updateMapMarkers();
@@ -2029,6 +2086,7 @@ function saveEvent() {
             vehicles: [...selectedVehicles],
             status: 'ACTIVE'
         };
+        // Nowe zgłoszenia zawsze na samej górze we wszystkich widokach
         events.unshift(newEv);
         targetEventObj = newEv;
         selectEvent(newEv.id);
@@ -2039,7 +2097,9 @@ function saveEvent() {
             if (descVal && !oldDesc.endsWith(descVal) && oldDesc !== descVal) {
                 const timeNow = new Date().toLocaleTimeString();
                 const operatorTag = getFormattedOperatorName();
-                ev.desc = `${oldDesc}\n------\n[${timeNow}] Edycja karty (${operatorTag}): ${descVal}`;
+                ev.desc = `${oldDesc}
+------
+[${timeNow}] Edycja karty (${operatorTag}): ${descVal}`;
             } else if (descVal) {
                 ev.desc = descVal;
             }
@@ -2349,13 +2409,14 @@ window.addEventListener('DOMContentLoaded', () => {
 
     injectSpeedAndSaveControls();
 
-    const pspGrid = document.getElementById('grid-psp');
-    if (pspGrid && !document.getElementById('view-map-container')) {
+    const pspGrid = 'grid-psp';
+    const pspGridEl = document.getElementById(pspGrid);
+    if (pspGridEl && !document.getElementById('view-map-container')) {
         const mapWrap = document.createElement('div');
         mapWrap.id = 'view-map-container';
         mapWrap.style.cssText = 'flex: 1; display: none; width: 100%; min-height: 260px; border: 1px solid #7f9db9; position: relative;';
         mapWrap.innerHTML = '<div id="leaflet-map" style="width: 100%; height: 100%;"></div>';
-        pspGrid.parentNode.insertBefore(mapWrap, pspGrid);
+        pspGridEl.parentNode.insertBefore(mapWrap, pspGridEl);
     }
 
     ensureSiSModalExists();
@@ -2372,4 +2433,4 @@ window.addEventListener('DOMContentLoaded', () => {
 
 startSimulationLoop();
 scheduleNextAutoCPR();
-renderUnits()
+renderUnits();
