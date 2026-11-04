@@ -1,27 +1,56 @@
+window.APP_VERSION = 'SWDST 0.42';
+
+let lublinAudio = null;
 
 function playCountySpecificAlertSound() {
     if (typeof currentCountyId !== 'undefined' && currentCountyId === 'lubelski') {
         try {
-            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(659.25, ctx.currentTime); // E5
-            osc.frequency.setValueAtTime(987.77, ctx.currentTime + 0.12); // B5
-            osc.frequency.setValueAtTime(1318.51, ctx.currentTime + 0.24); // E6
-            gain.gain.setValueAtTime(0.2, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.5);
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start();
-            osc.stop(ctx.currentTime + 0.5);
+            if (!lublinAudio) {
+                lublinAudio = new Audio('formatkaskkmlublin (1).mp3');
+            }
+            lublinAudio.loop = true;
+            lublinAudio.currentTime = 0;
+            lublinAudio.play().catch(err => {
+                console.warn("Lublin audio play error:", err);
+                if (typeof audioCpr !== 'undefined') { 
+                    audioCpr.loop = true;
+                    audioCpr.currentTime = 0; 
+                    audioCpr.play().catch(() => {}); 
+                }
+            });
         } catch(e) {
-            if (typeof audioCpr !== 'undefined') { audioCpr.currentTime = 0; audioCpr.play().catch(() => {}); }
+            if (typeof audioCpr !== 'undefined') { 
+                audioCpr.loop = true;
+                audioCpr.currentTime = 0; 
+                audioCpr.play().catch(() => {}); 
+            }
         }
     } else {
-        if (typeof audioCpr !== 'undefined') { audioCpr.currentTime = 0; audioCpr.play().catch(() => {}); }
+        if (typeof audioCpr !== 'undefined') { 
+            audioCpr.loop = true;
+            audioCpr.currentTime = 0; 
+            audioCpr.play().catch(() => {}); 
+        }
     }
 }
+
+function stopCountySpecificAlertSound() {
+    try {
+        if (lublinAudio) {
+            lublinAudio.pause();
+            lublinAudio.currentTime = 0;
+            lublinAudio.loop = false;
+        }
+    } catch(e) {}
+    try {
+        if (typeof audioCpr !== 'undefined') {
+            audioCpr.pause();
+            audioCpr.currentTime = 0;
+            audioCpr.loop = false;
+        }
+    } catch(e) {}
+}
+
 
 // =========================================================================
 // PLIK 4: script.js - PEŁNY RDZEŃ SWD + CO-OP + SUPABASE + HISTORIA EDYCJI
@@ -103,6 +132,12 @@ function initSupabaseAndCoop() {
         if (payload.speed && payload.speed !== simSpeed) {
             setSimulationSpeed(payload.speed, false);
         }
+    });
+
+    
+    coopChannel.on('broadcast', { event: 'swd_osp_alarm_sync' }, ({ payload }) => {
+        if (!payload || payload.senderId === myClientId || payload.countyId !== currentCountyId) return;
+        playOspAlarmRepeated(payload.count, false);
     });
 
     coopChannel.on('broadcast', { event: 'swd_cpr_sync' }, ({ payload }) => {
@@ -1523,7 +1558,8 @@ Zwróć TYLKO treść powiadomienia po polsku, bez cudzysłowów, maksymalnie 12
     }
 }
 
-function closeCPR(isAccepted = false) { 
+function closeCPR(isAccepted = false) {
+    stopCountySpecificAlertSound(); 
     if (!isAccepted && currentCPRData) {
         shiftStats.cprRefused++;
         const reason = "Zamknięto formatkę CPR bez otwarcia karty";
@@ -1557,6 +1593,7 @@ function minimizeCPR() {
 }
 
 function acceptCPRToEvent() {
+    stopCountySpecificAlertSound();
     if (!currentCPRData) return;
     shiftStats.cprAccepted++;
     openNewEventModal();
@@ -2053,12 +2090,22 @@ function confirmDispatch() {
     closeModal('modal-dispatch');
 }
 
-function playOspAlarmRepeated(count) {
+function playOspAlarmRepeated(count, broadcast = true) {
     if (count <= 0) return;
     try {
-        audioSelekt.currentTime = 0;
-        audioSelekt.play().catch(() => {});
+        if (typeof audioSelekt !== 'undefined') {
+            audioSelekt.currentTime = 0;
+            audioSelekt.play().catch(() => {});
+        }
     } catch(e) {}
+
+    if (broadcast && typeof coopChannel !== 'undefined' && coopChannel) {
+        coopChannel.send({
+            type: 'broadcast',
+            event: 'swd_osp_alarm_sync',
+            payload: { senderId: myClientId, countyId: currentCountyId, count: count }
+        }).catch(() => {});
+    }
 }
 
 function saveEvent() {
