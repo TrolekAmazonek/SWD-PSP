@@ -2028,6 +2028,14 @@ function confirmDispatch() {
     closeModal('modal-dispatch');
 }
 
+function playOspAlarmRepeated(count) {
+    if (count <= 0) return;
+    try {
+        audioSelekt.currentTime = 0;
+        audioSelekt.play().catch(() => {});
+    } catch(e) {}
+}
+
 function saveEvent() {
     try {
         const cityInput = document.getElementById('inp-ev-city');
