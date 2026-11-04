@@ -157,6 +157,7 @@ function initSupabaseAndCoop() {
             }
         } else if (payload.action === 'CLOSE_CPR') {
             currentCPRData = null;
+            stopCountySpecificAlertSound();
             const modal = document.getElementById('cpr-modal');
             if (modal) modal.style.display = 'none';
         }
